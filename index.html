@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>李雅璇 ❤️ 许晨皓</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=Ma+Shan+Zheng&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<div id="heartsContainer" class="hearts-container"></div>
+
+<!-- =============================================
+     登录页
+     ============================================= -->
+<div id="loginPage" class="login-page">
+  <div class="login-bg-anim"></div>
+  <div class="login-card">
+    <div class="login-hearts">❤️</div>
+    <h1 class="login-title">李雅璇 ❤️ 许晨皓</h1>
+    <p class="login-sub">这是我们专属的小世界</p>
+    <div class="login-form">
+      <div class="input-group">
+        <label>你是谁？</label>
+        <select id="loginName" class="login-input">
+          <option value="">— 请选择 —</option>
+          <!-- 【自定义】两位用户的名字 -->
+          <option value="许晨皓">许晨皓</option>
+          <option value="李雅璇">李雅璇</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label>专属密码</label>
+        <div class="pw-wrap">
+          <input type="password" id="loginPwd" class="login-input" placeholder="输入密码" />
+          <button class="pw-eye" onclick="togglePw()" id="eyeBtn">👁</button>
+        </div>
+      </div>
+      <div class="login-error" id="loginError"></div>
+      <button class="login-btn" onclick="doLogin()">进入我们的世界 ❤️</button>
+    </div>
+    <p class="login-hint">不会有小笨蛋忘记密码吧？ 😊</p>
+  </div>
+  <div class="floating-petals" id="petals"></div>
+</div>
+
+<!-- =============================================
+     主页（登录后显示）
+     ============================================= -->
+<div id="mainApp" class="main-app hidden">
+
+  <!-- 顶部导航 -->
+  <nav class="top-nav">
+    <span class="nav-logo">李雅璇 ❤️ 许晨皓</span>
+    <div class="nav-links">
+      <a href="#hero">首页</a>
+      <a href="#album">相册</a>
+      <a href="#whisper">悄悄话</a>
+      <a href="#anniversary">纪念日</a>
+      <a href="#grudge">记仇本</a>
+      <a href="#wishlist">心愿</a>
+    </div>
+    <button class="nav-logout" onclick="doLogout()">退出 👋</button>
+    <button class="hamburger" onclick="toggleNav()" id="hamburger">☰</button>
+  </nav>
+
+  <!-- 移动端菜单 -->
+  <div class="mobile-nav hidden" id="mobileNav">
+    <a href="#hero"         onclick="closeNav()">🏠 首页</a>
+    <a href="#album"        onclick="closeNav()">📷 相册</a>
+    <a href="#whisper"      onclick="closeNav()">💌 悄悄话</a>
+    <a href="#anniversary"  onclick="closeNav()">🗓 纪念日</a>
+    <a href="#grudge"       onclick="closeNav()">📒 记仇本</a>
+    <a href="#wishlist"     onclick="closeNav()">🌟 心愿</a>
+    <button onclick="doLogout(); closeNav()">退出 👋</button>
+  </div>
+
+  <!-- =============================================
+       首页 Hero：背景图 + 大标题 + 计时器
+       ============================================= -->
+  <section id="hero" class="hero-section">
+    <!-- 【自定义】替换下方 src 为你们的照片URL，或留空用渐变背景 -->
+    <div class="hero-bg" id="heroBg" style="background-image: url('https://picsum.photos/seed/love2024/1600/900')"></div>
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-date-tag" id="heroCurDate"></p>
+      <h1 class="hero-main-title">李雅璇 ❤️ 许晨皓</h1>
+      <p class="hero-sub-title">我们在一起已经</p>
+      <div class="timer-grid">
+        <div class="timer-item"><span class="t-num" id="t-years">0</span><span class="t-label">年</span></div>
+        <div class="timer-dot">·</div>
+        <div class="timer-item"><span class="t-num" id="t-days">0</span><span class="t-label">天</span></div>
+        <div class="timer-dot">·</div>
+        <div class="timer-item"><span class="t-num" id="t-hours">0</span><span class="t-label">小时</span></div>
+        <div class="timer-dot">·</div>
+        <div class="timer-item"><span class="t-num" id="t-minutes">0</span><span class="t-label">分钟</span></div>
+        <div class="timer-dot">·</div>
+        <div class="timer-item highlight"><span class="t-num" id="t-seconds">0</span><span class="t-label">秒</span></div>
+      </div>
+      <!-- 【自定义】恋爱开始日期 -->
+      <p class="hero-start-date" id="heroStartDate"></p>
+      <div class="hero-edit-date">
+        <input type="date" id="startDateInput" class="date-picker" />
+        <button onclick="saveStartDate()" class="save-date-btn">更新日期 📅</button>
+      </div>
+    </div>
+    <div class="hero-scroll-hint" onclick="document.getElementById('album').scrollIntoView({behavior:'smooth'})">↓ 继续探索</div>
+  </section>
+
+  <!-- =============================================
+       板块1：情侣相册
+       ============================================= -->
+  <section id="album" class="section album-section">
+    <div class="section-header">
+      <span class="section-tag">📷 我们的故事</span>
+      <h2 class="section-title">情侣相册</h2>
+      <p class="section-desc">每一帧，都是最珍贵的回忆</p>
+    </div>
+
+    <!-- 上传按钮 -->
+    <div class="album-toolbar">
+      <label class="upload-btn" for="photoUpload">
+        ＋ 上传照片
+        <input type="file" id="photoUpload" accept="image/*" multiple onchange="handlePhotoUpload(event)" style="display:none" />
+      </label>
+      <button class="save-album-btn" onclick="saveAlbum()">💾 保存相册</button>
+    </div>
+
+    <!-- 相册网格 -->
+    <div class="album-grid" id="albumGrid"></div>
+  </section>
+
+  <!-- =============================================
+       板块2：悄悄话（小纸条形式，可回复）
+       ============================================= -->
+  <section id="whisper" class="section whisper-section">
+    <div class="section-header">
+      <span class="section-tag">💌 心里话</span>
+      <h2 class="section-title">悄悄话想对你说</h2>
+      <p class="section-desc">不好意思说出口的，写在这里</p>
+    </div>
+
+    <!-- 发送新悄悄话 -->
+    <div class="whisper-compose">
+      <div class="compose-avatar" id="composeAvatar">我</div>
+      <div class="compose-body">
+        <textarea id="whisperText" class="whisper-textarea" placeholder="写下想对TA说的话…" rows="3"></textarea>
+        <button class="whisper-send-btn" onclick="sendWhisper()">发送纸条 💌</button>
+      </div>
+    </div>
+
+    <!-- 悄悄话列表 -->
+    <div class="whisper-list" id="whisperList"></div>
+  </section>
+
+  <!-- =============================================
+       板块3：纪念日清单
+       ============================================= -->
+  <section id="anniversary" class="section anni-section">
+    <div class="section-header">
+      <span class="section-tag">🗓 铭记于心</span>
+      <h2 class="section-title">纪念日清单</h2>
+      <p class="section-desc">每一个特别的日子，都不该被遗忘</p>
+    </div>
+    <div class="anni-container">
+      <ul class="anni-list" id="anniList"></ul>
+      <div class="anni-add">
+        <input type="date" id="anniDate" class="anni-input" />
+        <input type="text" id="anniEvent" class="anni-input" placeholder="纪念日名称，如：第一次牵手" />
+        <button class="anni-add-btn" onclick="addAnniversary()">＋ 添加</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================
+       板块4：记仇本
+       ============================================= -->
+  <section id="grudge" class="section grudge-section">
+    <div class="section-header">
+      <span class="section-tag">😤 账本</span>
+      <h2 class="section-title">记仇本</h2>
+      <p class="section-desc">晚回消息记录小本本 📒</p>
+    </div>
+    <div class="grudge-wrap">
+      <div class="grudge-card">
+        <div class="grudge-month-label" id="grudgeMonth"></div>
+        <div class="grudge-progress-outer">
+          <div class="grudge-progress-inner" id="grudgeFill"></div>
+        </div>
+        <div class="grudge-progress-text" id="grudgeProgressText"></div>
+        <div class="grudge-count-row">
+          <span class="grudge-big-num" id="grudgeNum">0</span>
+          <span class="grudge-unit">次</span>
+        </div>
+        <div class="grudge-status" id="grudgeStatus"></div>
+        <div class="grudge-btns">
+          <button class="g-btn minus" onclick="changeGrudge(-1)">－ 取消一次</button>
+          <button class="g-btn plus"  onclick="changeGrudge(1)">＋ 晚回一次</button>
+        </div>
+        <div class="grudge-manual-row">
+          <input type="number" id="grudgeManualInput" class="grudge-manual-input" placeholder="手动输入次数" min="0" />
+          <button class="g-btn set" onclick="setGrudge()">确定</button>
+          <button class="g-btn reset" onclick="resetGrudge()">清零</button>
+        </div>
+        <!-- 【自定义】上限次数和奖励内容 -->
+        <div class="grudge-tip">📌 月度上限 <strong id="grudgeLimitDisp">50</strong> 次，别再让我等待... 🎁</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =============================================
+       板块5：心愿清单
+       ============================================= -->
+  <section id="wishlist" class="section wish-section">
+    <div class="section-header">
+      <span class="section-tag">🌟 许愿</span>
+      <h2 class="section-title">心愿清单</h2>
+      <p class="section-desc">把想要的和想做的都写下来吧</p>
+    </div>
+    <!-- 添加心愿 -->
+    <div class="wish-add-row">
+      <input type="text" id="wishInput" class="wish-input" placeholder="写下你的心愿…" />
+      <button class="wish-add-btn" onclick="addWish()">＋ 许愿</button>
+    </div>
+    <!-- 心愿网格 -->
+    <div class="wish-grid" id="wishGrid"></div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <p>李雅璇 ❤️ 许晨皓 · 用心守护的小世界</p>
+  </footer>
+</div><!-- /#mainApp -->
+
+<!-- =============================================
+     心愿操作弹窗
+     ============================================= -->
+<div class="modal-overlay hidden" id="wishModal" onclick="closeWishModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeWishModal()">×</button>
+    <div class="modal-wish-emoji">🌟</div>
+    <h3 class="modal-wish-title" id="modalWishTitle">心愿内容</h3>
+    <p class="modal-wish-time" id="modalWishTime"></p>
+    <div class="modal-actions">
+      <button class="modal-btn edit"    onclick="editWish()">✏️ 修改</button>
+      <button class="modal-btn done"    onclick="completeWish()">✅ 心愿已达成</button>
+      <button class="modal-btn del-btn" onclick="deleteWish()">🗑 删除</button>
+    </div>
+    <!-- 修改输入框（隐藏状态） -->
+    <div class="modal-edit-wrap hidden" id="modalEditWrap">
+      <input type="text" id="modalEditInput" class="modal-edit-input" />
+      <button class="modal-btn save-edit" onclick="saveWishEdit()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 悄悄话回复弹窗 -->
+<div class="modal-overlay hidden" id="replyModal" onclick="closeReplyModal()">
+  <div class="modal-box reply-modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeReplyModal()">×</button>
+    <h3 class="modal-wish-title">💬 回复纸条</h3>
+    <div class="reply-original" id="replyOriginal"></div>
+    <textarea id="replyText" class="whisper-textarea" placeholder="写下你的回复…" rows="3"></textarea>
+    <button class="whisper-send-btn" onclick="sendReply()">发送回复</button>
+  </div>
+</div>
+
+<!-- 图片全屏预览 -->
+<div class="img-preview-overlay hidden" id="imgPreview" onclick="closeImgPreview()">
+  <img id="imgPreviewImg" src="" alt="预览" />
+  <button class="img-preview-close" onclick="closeImgPreview()">×</button>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
