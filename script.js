@@ -339,7 +339,7 @@ async function deletePhoto(id, e) {
 async function saveAlbum() {
   const toSave = albumPhotos.map(p => ({
     id: p.id,
-    src: p.src.startsWith('data:') ? p.src : p.src,
+    src: p.src,
     name: p.name
   }));
   await lsSet('couple_album', toSave);
