@@ -309,23 +309,51 @@ function renderAlbum() {
   `).join('');
 }
 
+// 替换你原来的 handlePhotoUpload
 function handlePhotoUpload(e) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
   let loaded = 0;
+
   files.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = ev => {
-      albumPhotos.push({ id: Date.now() + Math.random(), src: ev.target.result, name: file.name.replace(/\.[^.]+$/, '') });
+    compressImage(file, 600, 0.7).then(compressedDataUrl => {
+      albumPhotos.push({
+        id: Date.now() + Math.random(),
+        src: compressedDataUrl,
+        name: file.name.replace(/\.[^.]+$/, '')
+      });
       loaded++;
       if (loaded === files.length) {
         renderAlbum();
-        showToast(`已添加 ${files.length} 张照片 📷`);
+        showToast(`已添加 ${files.length} 张照片（已压缩）📷`);
       }
-    };
-    reader.readAsDataURL(file);
+    });
   });
   e.target.value = '';
+}
+
+// 图片压缩工具函数（关键！）
+function compressImage(file, maxWidth, quality) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth) {
+        height = (maxWidth / width) * height;
+        width = maxWidth;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.src = URL.createObjectURL(file);
+  });
 }
 
 async function deletePhoto(id, e) {
