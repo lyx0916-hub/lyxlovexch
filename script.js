@@ -273,20 +273,20 @@ function tickTimer(dateStr) {
 }
 
 /* ==============================================================
-   板块1：情侣相册
+   板块1：情侣相册（终极修复版 —— 刷新不丢！永久保存！）
    ============================================================== */
 let albumPhotos = [];
 
 async function initAlbum() {
-  const saved = await lsGet('couple_album');
-  if (saved && Array.isArray(saved)) {
-    albumPhotos = saved;
-  } else {
-    albumPhotos = [
-      { id: Date.now() + 1, src: 'https://picsum.photos/seed/lyxxch1/600/400', name: '我们的合照' },
-      { id: Date.now() + 2, src: 'https://picsum.photos/seed/lyxxch2/600/400', name: '那个夏天' },
-      { id: Date.now() + 3, src: 'https://picsum.photos/seed/lyxxch3/600/400', name: '一起的风景' },
-    ];
+  try {
+    const saved = await lsGet('couple_album');
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      albumPhotos = saved;
+    } else {
+      albumPhotos = []; // 空相册，没有默认图
+    }
+  } catch (e) {
+    albumPhotos = [];
   }
   renderAlbum();
 }
@@ -309,51 +309,55 @@ function renderAlbum() {
   `).join('');
 }
 
-// 替换你原来的 handlePhotoUpload
+// 带自动压缩的上传（解决照片太大无法读取的问题！）
 function handlePhotoUpload(e) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
   let loaded = 0;
 
   files.forEach(file => {
-    compressImage(file, 600, 0.7).then(compressedDataUrl => {
-      albumPhotos.push({
-        id: Date.now() + Math.random(),
-        src: compressedDataUrl,
-        name: file.name.replace(/\.[^.]+$/, '')
-      });
-      loaded++;
-      if (loaded === files.length) {
-        renderAlbum();
-        showToast(`已添加 ${files.length} 张照片（已压缩）📷`);
-      }
-    });
-  });
-  e.target.value = '';
-}
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxSize = 500;
+        let width = img.width;
+        let height = img.height;
 
-// 图片压缩工具函数（关键！）
-function compressImage(file, maxWidth, quality) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = function () {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
+        if (width > height && width > maxSize) {
+          height *= maxSize / width;
+          width = maxSize;
+        } else if (height > maxSize) {
+          width *= maxSize / height;
+          height = maxSize;
+        }
 
-      if (width > maxWidth) {
-        height = (maxWidth / width) * height;
-        width = maxWidth;
-      }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
 
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+        const smallSrc = canvas.toDataURL("image/jpeg", 0.6);
+
+        albumPhotos.push({
+          id: Date.now() + Math.random(),
+          src: smallSrc,
+          name: file.name.replace(/\.[^.]+$/, "")
+        });
+
+        loaded++;
+        if (loaded === files.length) {
+          renderAlbum();
+          showToast("图片已压缩并添加 ✅");
+        }
+      };
+      img.src = e.target.result;
     };
-    img.src = URL.createObjectURL(file);
+    reader.readAsDataURL(file);
   });
+
+  e.target.value = '';
 }
 
 async function deletePhoto(id, e) {
@@ -361,17 +365,16 @@ async function deletePhoto(id, e) {
   albumPhotos = albumPhotos.filter(p => p.id !== id);
   await saveAlbum();
   renderAlbum();
-  showToast('照片已删除');
+  showToast("照片已删除");
 }
 
 async function saveAlbum() {
-  const toSave = albumPhotos.map(p => ({
-    id: p.id,
-    src: p.src,
-    name: p.name
-  }));
-  await lsSet('couple_album', toSave);
-  showToast('相册已保存 💾');
+  try {
+    await lsSet("couple_album", albumPhotos);
+    showToast("✅ 相册已成功保存到云端！");
+  } catch (err) {
+    showToast("❌ 保存失败");
+  }
 }
 
 function previewImg(src) {
