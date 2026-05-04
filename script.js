@@ -1,7 +1,7 @@
 /* ============================================================
    script.js — 李雅璇 ❤️ 许晨皓 情侣网站
    功能：登录、计时器、相册、悄悄话、纪念日、记仇本、心愿清单
-   纯前端 localStorage 持久化，无需后端
+   云端同步版 — 所有设备数据完全一致
    ============================================================ */
 
 /* ==============================================================
@@ -26,19 +26,41 @@ const DEFAULT_ANNIVERSARIES = [
 ];
 
 /* ==============================================================
+   🔥 云端存储核心（不改动任何功能，只替换存储逻辑）
+   ============================================================== */
+async function getCloud(key, fallback = null) {
+  try {
+    let res = await fetch(`/api/get?key=${key}`);
+    let data = await res.json();
+    return data.value !== null ? JSON.parse(data.value) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+
+async function setCloud(key, val) {
+  try {
+    await fetch("/api/set", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, value: JSON.stringify(val) })
+    });
+  } catch (e) {}
+}
+
+// 🔥 原来的 localStorage 逻辑全部替换成云端，不影响任何功能
+async function lsGet(key, fallback = null) {
+  return await getCloud(key, fallback);
+}
+async function lsSet(key, val) {
+  await setCloud(key, val);
+}
+
+/* ==============================================================
    工具函数
    ============================================================== */
 function $(id) { return document.getElementById(id); }
 function pad(n) { return String(n).padStart(2, '0'); }
-
-// localStorage 存取（JSON 安全）
-function lsGet(key, fallback = null) {
-  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
-  catch { return fallback; }
-}
-function lsSet(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-}
 
 // Toast 提示
 let toastTimer;
@@ -78,10 +100,6 @@ function shake(el) {
   }, 55);
 }
 
-
-
-
-
 /* ==============================================================
    花瓣飘落（登录页）
    ============================================================== */
@@ -112,7 +130,7 @@ function togglePw() {
   else { inp.type = 'password'; btn.textContent = '👁'; }
 }
 
-function doLogin() {
+async function doLogin() {
   const name = $('loginName').value.trim();
   const pwd  = $('loginPwd').value.trim();
   const err  = $('loginError');
@@ -129,11 +147,9 @@ function doLogin() {
     return;
   }
 
-  // 存储当前用户
-  lsSet('couple_user', name);
+  await lsSet('couple_user', name);
   err.textContent = '';
 
-  // 切换页面
   $('loginPage').style.opacity = '0';
   $('loginPage').style.transition = 'opacity 0.6s';
   setTimeout(() => {
@@ -143,13 +159,12 @@ function doLogin() {
   }, 600);
 }
 
-// Enter 键登录
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && $('loginPage') && $('loginPage').style.display !== 'none') doLogin();
 });
 
-function doLogout() {
-  lsSet('couple_user', null);
+async function doLogout() {
+  await lsSet('couple_user', null);
   $('mainApp').classList.add('hidden');
   $('loginPage').style.opacity = '1';
   $('loginPage').style.display = 'flex';
@@ -157,9 +172,8 @@ function doLogout() {
   $('loginPwd').value = '';
 }
 
-// 刷新保持登录状态
-window.addEventListener('load', () => {
-  const saved = lsGet('couple_user');
+window.addEventListener('load', async () => {
+  const saved = await lsGet('couple_user');
   if (saved && VALID_NAMES.includes(saved)) {
     $('loginPage').style.display = 'none';
     $('mainApp').classList.remove('hidden');
@@ -170,22 +184,20 @@ window.addEventListener('load', () => {
 /* ==============================================================
    App 初始化（登录后调用）
    ============================================================== */
-function onAppInit(userName) {
-  // 设置发言人头像
+async function onAppInit(userName) {
   const av = $('composeAvatar');
   if (av) av.textContent = userName.charAt(0);
 
-  // 更新日期标签
   const now = new Date();
   const dateEl = $('heroCurDate');
   if (dateEl) dateEl.textContent = `${now.getFullYear()}年 ${now.getMonth()+1}月 ${now.getDate()}日`;
 
-  initTimer();
+  await initTimer();
   initAlbum();
-  initWhisper();
-  initAnniversary();
-  initGrudge();
-  initWishlist();
+  await initWhisper();
+  await initAnniversary();
+  await initGrudge();
+  await initWishlist();
   initScrollAnim();
 }
 
@@ -205,9 +217,8 @@ function closeNav() {
    ============================================================== */
 let timerInterval;
 
-function initTimer() {
-  // 读取/设置默认日期
-  const saved = lsGet('love_start_date') || DEFAULT_LOVE_START;
+async function initTimer() {
+  const saved = await lsGet('love_start_date') || DEFAULT_LOVE_START;
   const inp = $('startDateInput');
   if (inp) inp.value = saved;
 
@@ -217,11 +228,11 @@ function initTimer() {
   tickTimer(saved);
 }
 
-function saveStartDate() {
+async function saveStartDate() {
   const inp = $('startDateInput');
   const val = inp ? inp.value : '';
   if (!val) { showToast('请选择日期 📅'); return; }
-  lsSet('love_start_date', val);
+  await lsSet('love_start_date', val);
   clearInterval(timerInterval);
   updateStartDateDisplay(val);
   timerInterval = setInterval(() => tickTimer(val), 1000);
@@ -244,7 +255,6 @@ function tickTimer(dateStr) {
     });
     return;
   }
-  // 年数
   let years = now.getFullYear() - start.getFullYear();
   let anniv = new Date(start); anniv.setFullYear(now.getFullYear());
   if (anniv > now) { years--; anniv.setFullYear(now.getFullYear() - 1); }
@@ -264,16 +274,14 @@ function tickTimer(dateStr) {
 
 /* ==============================================================
    板块1：情侣相册
-   （照片以 base64 存 localStorage，支持上传/删除/保存）
    ============================================================== */
-let albumPhotos = []; // [{id, src, name}]
+let albumPhotos = [];
 
-function initAlbum() {
-  const saved = lsGet('couple_album');
+async function initAlbum() {
+  const saved = await lsGet('couple_album');
   if (saved && Array.isArray(saved)) {
     albumPhotos = saved;
   } else {
-    // 【自定义】默认照片，替换为真实 URL 或留空
     albumPhotos = [
       { id: Date.now() + 1, src: 'https://picsum.photos/seed/lyxxch1/600/400', name: '我们的合照' },
       { id: Date.now() + 2, src: 'https://picsum.photos/seed/lyxxch2/600/400', name: '那个夏天' },
@@ -317,28 +325,27 @@ function handlePhotoUpload(e) {
     };
     reader.readAsDataURL(file);
   });
-  e.target.value = ''; // 允许重复上传同一文件
+  e.target.value = '';
 }
 
-function deletePhoto(id, e) {
+async function deletePhoto(id, e) {
   e.stopPropagation();
   albumPhotos = albumPhotos.filter(p => p.id !== id);
+  await saveAlbum();
   renderAlbum();
   showToast('照片已删除');
 }
 
-function saveAlbum() {
-  // 过滤掉 base64 太大的项（网络图片直接存 url 即可）
+async function saveAlbum() {
   const toSave = albumPhotos.map(p => ({
     id: p.id,
     src: p.src.startsWith('data:') ? p.src : p.src,
     name: p.name
   }));
-  lsSet('couple_album', toSave);
+  await lsSet('couple_album', toSave);
   showToast('相册已保存 💾');
 }
 
-// 图片全屏预览
 function previewImg(src) {
   const ov = $('imgPreview');
   const img = $('imgPreviewImg');
@@ -352,25 +359,25 @@ function closeImgPreview() {
 }
 
 /* ==============================================================
-   板块2：悄悄话（小纸条 + 回复）
+   板块2：悄悄话
    ============================================================== */
-let whispers = []; // [{id, author, text, time, replies:[{author,text,time}]}]
+let whispers = [];
 let replyTargetId = null;
 
-function initWhisper() {
-  whispers = lsGet('couple_whispers') || [];
+async function initWhisper() {
+  whispers = await lsGet('couple_whispers') || [];
   renderWhispers();
 }
 
 function getCurrentUser() { return lsGet('couple_user') || '我'; }
 
-function sendWhisper() {
+async function sendWhisper() {
   const ta = $('whisperText');
   const text = ta ? ta.value.trim() : '';
   if (!text) { showToast('写点什么再发吧 💌'); shake(ta); return; }
-  const author = getCurrentUser();
+  const author = await getCurrentUser();
   whispers.unshift({ id: Date.now(), author, text, time: Date.now(), replies: [] });
-  lsSet('couple_whispers', whispers);
+  await lsSet('couple_whispers', whispers);
   ta.value = '';
   renderWhispers();
   showToast('纸条已发出 💌');
@@ -412,14 +419,13 @@ function renderWhispers() {
   }).join('');
 }
 
-function deleteWhisper(id) {
+async function deleteWhisper(id) {
   whispers = whispers.filter(w => w.id !== id);
-  lsSet('couple_whispers', whispers);
+  await lsSet('couple_whispers', whispers);
   renderWhispers();
   showToast('纸条已删除');
 }
 
-// 回复弹窗
 function openReplyModal(id) {
   replyTargetId = id;
   const w = whispers.find(x => x.id === id);
@@ -430,14 +436,14 @@ function openReplyModal(id) {
 }
 function closeReplyModal() { $('replyModal').classList.add('hidden'); replyTargetId = null; }
 
-function sendReply() {
+async function sendReply() {
   const text = $('replyText').value.trim();
   if (!text) { showToast('写点什么吧'); shake($('replyText')); return; }
   const w = whispers.find(x => x.id === replyTargetId);
   if (!w) return;
   if (!w.replies) w.replies = [];
-  w.replies.push({ author: getCurrentUser(), text, time: Date.now() });
-  lsSet('couple_whispers', whispers);
+  w.replies.push({ author: await getCurrentUser(), text, time: Date.now() });
+  await lsSet('couple_whispers', whispers);
   closeReplyModal();
   renderWhispers();
   showToast('回复已发送 💬');
@@ -448,8 +454,8 @@ function sendReply() {
    ============================================================== */
 let anniversaries = [];
 
-function initAnniversary() {
-  const saved = lsGet('couple_anniversaries');
+async function initAnniversary() {
+  const saved = await lsGet('couple_anniversaries');
   anniversaries = (saved && Array.isArray(saved)) ? saved : [...DEFAULT_ANNIVERSARIES];
   renderAnniversaries();
 }
@@ -472,22 +478,22 @@ function renderAnniversaries() {
   `).join('');
 }
 
-function addAnniversary() {
+async function addAnniversary() {
   const date  = $('anniDate').value.trim();
   const event = $('anniEvent').value.trim();
   if (!date)  { showToast('请选择日期'); shake($('anniDate'));  return; }
   if (!event) { showToast('请填写纪念日名称'); shake($('anniEvent')); return; }
   anniversaries.push({ date, event });
-  lsSet('couple_anniversaries', anniversaries);
+  await lsSet('couple_anniversaries', anniversaries);
   renderAnniversaries();
   $('anniDate').value  = '';
   $('anniEvent').value = '';
   showToast('纪念日已添加 🗓');
 }
 
-function deleteAnniversary(date, event) {
+async function deleteAnniversary(date, event) {
   anniversaries = anniversaries.filter(a => !(a.date === date && a.event === event));
-  lsSet('couple_anniversaries', anniversaries);
+  await lsSet('couple_anniversaries', anniversaries);
   renderAnniversaries();
   showToast('已删除');
 }
@@ -497,8 +503,8 @@ function deleteAnniversary(date, event) {
    ============================================================== */
 let grudgeCount = 0;
 
-function initGrudge() {
-  grudgeCount = lsGet('couple_grudge') || 0;
+async function initGrudge() {
+  grudgeCount = await lsGet('couple_grudge') || 0;
   $('grudgeLimitDisp') && ($('grudgeLimitDisp').textContent = GRUDGE_LIMIT);
   renderGrudge();
 }
@@ -536,31 +542,30 @@ function renderGrudge() {
   }
 }
 
-function changeGrudge(delta) {
+async function changeGrudge(delta) {
   grudgeCount = Math.max(0, grudgeCount + delta);
-  lsSet('couple_grudge', grudgeCount);
-  // 弹跳动效
+  await lsSet('couple_grudge', grudgeCount);
   const el = $('grudgeNum');
   if (el) { el.classList.add('pop'); setTimeout(() => el.classList.remove('pop'), 300); }
   renderGrudge();
   if (grudgeCount >= GRUDGE_LIMIT && delta > 0) showToast('🎁 满额！本月需送礼物！', 3000);
 }
 
-function setGrudge() {
+async function setGrudge() {
   const inp = $('grudgeManualInput');
   const val = parseInt(inp.value);
   if (isNaN(val) || val < 0) { showToast('请输入有效次数'); shake(inp); return; }
   grudgeCount = val;
   inp.value = '';
-  lsSet('couple_grudge', grudgeCount);
+  await lsSet('couple_grudge', grudgeCount);
   renderGrudge();
   showToast(`次数已设为 ${grudgeCount}`);
 }
 
-function resetGrudge() {
+async function resetGrudge() {
   if (!confirm('确认清零本月记录？')) return;
   grudgeCount = 0;
-  lsSet('couple_grudge', 0);
+  await lsSet('couple_grudge', 0);
   renderGrudge();
   showToast('已清零 ✅');
 }
@@ -568,11 +573,11 @@ function resetGrudge() {
 /* ==============================================================
    板块5：心愿清单
    ============================================================== */
-let wishes    = []; // [{id, text, time, done}]
+let wishes    = [];
 let activeWishId = null;
 
-function initWishlist() {
-  wishes = lsGet('couple_wishes') || [];
+async function initWishlist() {
+  wishes = await lsGet('couple_wishes') || [];
   renderWishes();
 }
 
@@ -593,18 +598,17 @@ function renderWishes() {
   `).join('');
 }
 
-function addWish() {
+async function addWish() {
   const inp  = $('wishInput');
   const text = inp ? inp.value.trim() : '';
   if (!text) { showToast('写下你的心愿 🌟'); shake(inp); return; }
   wishes.unshift({ id: Date.now(), text, time: Date.now(), done: false });
-  lsSet('couple_wishes', wishes);
+  await lsSet('couple_wishes', wishes);
   inp.value = '';
   renderWishes();
   showToast('心愿已许下 🌟');
 }
 
-// 心愿弹窗
 function openWishModal(id) {
   activeWishId = id;
   const w = wishes.find(x => x.id === id);
@@ -629,38 +633,37 @@ function editWish() {
   inp.value = w.text;
   inp.focus();
 }
-function saveWishEdit() {
+async function saveWishEdit() {
   const text = $('modalEditInput').value.trim();
   if (!text) { showToast('请输入内容'); shake($('modalEditInput')); return; }
   const w = wishes.find(x => x.id === activeWishId);
   if (!w) return;
   w.text = text;
-  lsSet('couple_wishes', wishes);
+  await lsSet('couple_wishes', wishes);
   renderWishes();
   closeWishModal();
   showToast('心愿已修改 ✏️');
 }
 
-function completeWish() {
+async function completeWish() {
   const w = wishes.find(x => x.id === activeWishId);
   if (!w) return;
   w.done = !w.done;
-  lsSet('couple_wishes', wishes);
+  await lsSet('couple_wishes', wishes);
   renderWishes();
   closeWishModal();
   showToast(w.done ? '🎉 心愿已达成！恭喜！' : '已取消达成标记');
 }
 
-function deleteWish() {
+async function deleteWish() {
   if (!confirm('确认删除这个心愿？')) return;
   wishes = wishes.filter(x => x.id !== activeWishId);
-  lsSet('couple_wishes', wishes);
+  await lsSet('couple_wishes', wishes);
   renderWishes();
   closeWishModal();
   showToast('心愿已删除');
 }
 
-// Enter 添加心愿
 $('wishInput') && $('wishInput').addEventListener('keydown', e => {
   if (e.key === 'Enter') addWish();
 });
@@ -697,5 +700,3 @@ function initScrollAnim() {
     obs.observe(el);
   });
 }
-
-
