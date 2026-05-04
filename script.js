@@ -273,7 +273,7 @@ function tickTimer(dateStr) {
 }
 
 /* ==============================================================
-   板块1：情侣相册（终极修复版 —— 刷新不丢！永久保存！）
+   板块1：情侣相册 —— 高清+可点击放大+保存不丢版
    ============================================================== */
 let albumPhotos = [];
 
@@ -283,7 +283,7 @@ async function initAlbum() {
     if (saved && Array.isArray(saved) && saved.length > 0) {
       albumPhotos = saved;
     } else {
-      albumPhotos = []; // 空相册，没有默认图
+      albumPhotos = [];
     }
   } catch (e) {
     albumPhotos = [];
@@ -300,7 +300,13 @@ function renderAlbum() {
   }
   grid.innerHTML = albumPhotos.map(p => `
     <div class="album-cell" data-id="${p.id}">
-      <img src="${esc(p.src)}" alt="${esc(p.name)}" loading="lazy" onclick="previewImg('${esc(p.src)}')" />
+      <img 
+        src="${esc(p.src)}" 
+        alt="${esc(p.name)}" 
+        loading="lazy" 
+        onclick="openImgPreview('${esc(p.src)}')" 
+        style="cursor:pointer;"
+      />
       <div class="album-cell-overlay">
         <span style="color:#fff;font-size:0.85rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.4)">${esc(p.name)}</span>
         <button class="album-del-btn" onclick="deletePhoto(${p.id}, event)">🗑 删除</button>
@@ -309,7 +315,7 @@ function renderAlbum() {
   `).join('');
 }
 
-// 带自动压缩的上传（解决照片太大无法读取的问题！）
+// 高清上传压缩 不糊版
 function handlePhotoUpload(e) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
@@ -321,7 +327,7 @@ function handlePhotoUpload(e) {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement("canvas");
-        const maxSize = 500;
+        const maxSize = 1000;
         let width = img.width;
         let height = img.height;
 
@@ -338,7 +344,7 @@ function handlePhotoUpload(e) {
         const ctx = canvas.getContext("2d");
         ctx.drawImage(img, 0, 0, width, height);
 
-        const smallSrc = canvas.toDataURL("image/jpeg", 0.6);
+        const smallSrc = canvas.toDataURL("image/jpeg", 0.8);
 
         albumPhotos.push({
           id: Date.now() + Math.random(),
@@ -349,7 +355,7 @@ function handlePhotoUpload(e) {
         loaded++;
         if (loaded === files.length) {
           renderAlbum();
-          showToast("图片已压缩并添加 ✅");
+          showToast("图片已添加（高清）✅");
         }
       };
       img.src = e.target.result;
@@ -377,13 +383,16 @@ async function saveAlbum() {
   }
 }
 
-function previewImg(src) {
+// 打开大图预览
+function openImgPreview(src) {
   const ov = $('imgPreview');
   const img = $('imgPreviewImg');
   if (!ov || !img) return;
   img.src = src;
   ov.classList.remove('hidden');
 }
+
+// 关闭大图预览
 function closeImgPreview() {
   $('imgPreview').classList.add('hidden');
   $('imgPreviewImg').src = '';
