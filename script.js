@@ -450,7 +450,7 @@ function renderWhispers() {
           <div class="note-card">${esc(w.text)}</div>
           <div class="note-actions">
             <button class="note-reply-btn" onclick="openReplyModal(${w.id})">💬 回复</button>
-            ${isMe ? `<button class="note-del-btn" onclick="deleteWhisper(${w.id})">🗑 删除</button>` : ''}
+            <button class="note-del-btn" onclick="deleteWhisper(${w.id})">🗑 删除</button>
           </div>
           ${repliesHtml ? `<div class="note-replies">${repliesHtml}</div>` : ''}
         </div>
