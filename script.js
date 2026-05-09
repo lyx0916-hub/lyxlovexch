@@ -567,7 +567,7 @@ function renderGrudge() {
   const st = $('grudgeStatus');
   if (st) {
     if (grudgeCount >= GRUDGE_LIMIT) {
-      st.innerHTML = '🎁 已达上限！本月必须送礼物！';
+      st.innerHTML = '🎁 已达上限！你个大笨狗！';
       st.style.color = 'var(--rose-deep)';
     } else if (grudgeCount >= GRUDGE_LIMIT * 0.7) {
       st.innerHTML = `😤 快到上限了！还差 ${GRUDGE_LIMIT - grudgeCount} 次！`;
